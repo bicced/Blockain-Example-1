@@ -16,7 +16,7 @@ const fileByLine = readline.createInterface({
 });
 
 function roundedSum(num1, num2) {
-  return Math.round((num1 + num2) * 100) / 100;
+  return Math.round((num1 + num2) * 10000) / 10000;
 }
 
 function roundedSubtract(num1, num2) {
@@ -26,15 +26,12 @@ function roundedSubtract(num1, num2) {
 async function saveBlockAndState(line) {
   const sortedTransactions = Array.from(transactions.values()).sort((a, b) => b.fee - a.fee);
   const transactionText = sortedTransactions.map(t => Object.values(t).join(' | ')).join('\n');
-  // console.log(transactionText);
 
   let blockText = line;
-  console.log('transactionText: ' + transactionText)
   if (transactionText.length > 0) {
     blockText = transactionText + '\n' + line;
   }
 
-  console.log('blockText:', blockText)
   fs.writeFile(`${outputDirectory}/block${block}`, blockText, (err) => {
     if (err) throw err;
     console.log(`Block ${block} saved!`);
@@ -44,6 +41,7 @@ async function saveBlockAndState(line) {
     if (err) throw err;
     console.log(`State of blockchain has been saved!`);
   });
+
   block++;
   transactions.clear();
 }
@@ -51,8 +49,8 @@ async function saveBlockAndState(line) {
 function processLine(line) {
   const splitLine = line.split(' | ');
   const [type, from, to, amountString, feeString] = splitLine;
-  const amount = parseFloat(splitLine[3]);
-  const fee = parseFloat(splitLine[4]);
+  const amount = parseFloat(amountString);
+  const fee = parseFloat(feeString);
   const total = roundedSum(amount, fee);
 
   if (!state[from]) {
