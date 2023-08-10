@@ -1,31 +1,30 @@
-
 import fs from 'fs';
 import { createHash } from 'crypto';
 import { roundedSubtract, roundedSum } from "./utils.js";
-const outputDirectory = '../output';
+const outputDirectory = './output';
 
-let block_count = 0; 
+let block_count = 0;
 
 export class Accounts {
   // Collection of accounts and their balances
-  ledger: { [key: string]: number };
+  ledger;
 
   constructor() {
     this.ledger = {};
   }
 
-  toString() {
-    return JSON.stringify(this.ledger);
+  getState() {
+    return this.ledger;
   }
 
-  reward(address: string, amount: number) {
+  reward(address, amount) {
     if (!this.ledger[address]) {
       this.ledger[address] = 0;
     }
     this.ledger[address] = roundedSum(this.ledger[address], amount);
   }
 
-  transfer(from: string, to: string, amount: number, gas: number) {
+  transfer(from, to, amount, gas) {
     //If the account does not exist, or does not have enough funds - throw an error
     if (!this.ledger[from] || this.ledger[from] < amount) {
       throw new Error('Account does not have any funds');
@@ -51,37 +50,39 @@ export class Accounts {
   }
 }
 
-class BlockList {
+export class BlockList {
   // An ordered collection of blocks
-  blocks: Block[];
-  prev_hash: string;
+  blocks;
+  prev_hash;
 
   constructor() {
     this.blocks = [];
     this.prev_hash = "0000000000000000000000000000000000000000000000000000000000000000";
   }
 
-  add(block: Block) {
+  add(block) {
     this.blocks.push(block);
     this.prev_hash = block.serialize(this.prev_hash);
   }
 }
 
-class Block {
-  coinbase_address: string;
-  block_number: number;
-  transactions: Transfer[];
+export class Block {
+  // A block of transactions that is added to the blockchain
+  coinbase_address;
+  block_number;
+  transactions;
 
-  constructor(coinbase_address: string) {
+  constructor(coinbase_address) {
     this.block_number = block_count++;
     this.coinbase_address = coinbase_address;
+    this.transactions = [];
   }
 
-  add(transaction: Transfer) {
+  add(transaction) {
     this.transactions.push(transaction);
   }
 
-  serialize(prevHash: string) {
+  serialize(prevHash) {
     const sortedTransactions = this.transactions.sort((a, b) => b.gas - a.gas);
     const transactionText = sortedTransactions.map(t => Object.values(t).join(' | ')).join('\n');
     let blockText = prevHash + '\n';
@@ -99,50 +100,13 @@ class Block {
     // Add hash to block
     blockText = blockText + '\n' + hash;
 
+    console.log(blockText)
+
     fs.writeFile(`${outputDirectory}/block${this.block_number}`, blockText, (err) => {
       if (err) throw err;
       console.log(`Block ${this.block_number} saved!`);
     });
 
     return hash;
-  }
-}
-
-class Transfer {
-  // Transfer of funds from one account to another
-  type: string;
-  from: string;
-  to: string;
-  amount: number;
-  gas: number;
-
-  constructor(from: string, to: string, amount: string, gas: string) {
-    this.type = "transfer";
-    this.from = from;
-    this.to = to;
-    this.amount = parseFloat(amount);
-    this.gas = parseFloat(gas);
-  }
-
-  // Returns the transaction as a string
-  toString() {
-    return `${this.type} | ${this.from} | ${this.to} | ${this.amount} | ${this.gas}`
-  }
-
-}
-
-class Coinbase {
-  // Reward for mining a block
-  type: string;
-  address: string;
-
-  constructor(address: string) {
-    this.type = "coinbase";
-    this.address = address;
-  }
-
-  // Returns the transaction as a string
-  toString() {
-    return `${this.type} | ${this.address}`
   }
 }

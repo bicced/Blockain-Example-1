@@ -1,89 +1,80 @@
-const fs = require('fs');
-const readline = require('readline');
-const outputDirectory = './output';
-
-const { createHash } = require('crypto');
+import fs from 'fs';
+import { Accounts } from './classes/block.js';
+import { roundedSum } from './classes/utils.js';
+import { createHash } from 'crypto';
+import _ from 'lodash';
 
 const MINING_REWARD = 5.0;
 
-let block = 0;
-let hash = '0000000000000000000000000000000000000000000000000000000000000000';
-const state = {};
-
-function roundedSum(num1, num2) {
-  return Math.round((num1 + num2) * 10000) / 10000;
-};
-
-function roundedSubtract(num1, num2) {
-  return Math.round((num1 - num2) * 10000) / 10000;
-};
-
-function verifyPrevHash(prevHash) {
-  if (prevHash !== hash) {
+function verifyCurrHash(currHash, prevHash) {
+  if (currHash !== prevHash) {
     throw new Error('Invalid previous hash!');
   }
 };
 
-function verifyCurrHash(currHash, blockData) {
+function verifyNextHash(nextHash, blockData) {
   const blockText = blockData.join('\n');
   const expectedHash = createHash('sha256').update(blockText).digest('hex');
-  if (currHash !== expectedHash) {
+  if (nextHash !== expectedHash) {
     throw new Error('Invalid current hash!');
   }
-  hash = expectedHash;
 };
 
-function updateState(transactions) {
-  transactions.forEach((transaction) => {
+function updateTransactions(blockData, accounts) {
+  let reward = MINING_REWARD; 
+  blockData.forEach(transaction => {
     const splitLine = transaction.split(' | ');
     const [type, from, to, amountString, feeString] = splitLine;
-    const amount = parseFloat(amountString);
-    const fee = parseFloat(feeString);
-    const total = roundedSum(amount, fee);
-
-    if (!state[from]) {
-      state[from] = { balance: 0.0 };
-    }
-
     if (type === 'coinbase') {
-      state[from].balance = roundedSum(state[from].balance, MINING_REWARD);
+      accounts.reward(from, reward);
     }
-
     if (type === 'transfer') {
-      if (state[from].balance >= total) {
-        if (!state[to]) {
-          state[to] = { balance: 0.0 };
-        }
-        state[from].balance = roundedSubtract(state[from].balance, total);
-        state[to].balance = roundedSum(state[to].balance, amount);
-      } else {
-        throw new Error('Insufficient funds');
-      }
+      reward = roundedSum(reward, parseFloat(feeString));
+      accounts.transfer(from, to, parseFloat(amountString), parseFloat(feeString));
     }
+  });
+}
 
-  })
-};
-
-function verifyBlock() {
-  const file =  fs.readFileSync(`${outputDirectory}/block${block}`, 'utf8');
+function verifyBlock(file, prevHash, accounts) {
   const lines = file.split('\n');
-  const prevHash = lines[0];
-  const currHash = lines[lines.length - 1];
+  const currHash = lines[0];
+  const nextHash = lines[lines.length - 1];
   const blockData = lines.slice(0, lines.length - 1);
-  const transactions = lines.slice(1, lines.length - 1);
-
-  verifyPrevHash(prevHash);
-  verifyCurrHash(currHash, blockData);
-  updateState(transactions);
+  verifyCurrHash(currHash, prevHash);
+  verifyNextHash(nextHash, blockData);
+  updateTransactions(blockData, accounts);
+  return nextHash;
 };
 
-while (fs.existsSync(`${outputDirectory}/block${block}`)) {
-  verifyBlock();
-  block++;
-};
+function verifyBlocks(outputDirectory, accounts) {
+  let prevHash = "0000000000000000000000000000000000000000000000000000000000000000";
+  const files = fs.readdirSync(outputDirectory).filter((file) => file.includes('block'));
+  files.forEach(file => {
+    const fileContents = fs.readFileSync(`${outputDirectory}/${file}`, 'utf8');
+    const nextHash = verifyBlock(fileContents, prevHash, accounts);
+    prevHash = nextHash;
+  });
+}
 
-const latestStateFile = fs.readFileSync(`${outputDirectory}/state.json`, 'utf8');
-const latestState = JSON.parse(latestStateFile);
+function verifyState(outputDirectory, accounts) {
+  const file = fs.readFileSync(`${outputDirectory}/state.json`, 'utf8');
+  const state = JSON.parse(file);
+  const accountsState = accounts.getState();
+  if (!_.isEqual(state, accountsState)) {
+    throw new Error('Invalid state!');
+  }
+}
 
-console.log(latestState);
-console.log(state);
+function verifyBlockchain(outputDirectory) {
+  const accounts = new Accounts();
+  verifyBlocks(outputDirectory, accounts);
+  console.log('Blocks are valid!');
+
+  verifyState(outputDirectory, accounts);
+  console.log('State is valid!');
+}
+
+verifyBlockchain('./output');
+
+
+

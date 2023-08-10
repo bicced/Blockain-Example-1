@@ -1,18 +1,19 @@
 {
-  "name": "blockain-project-1",
+  "name": "tester",
   "version": "1.0.0",
-  "description": "Rare Skills blockchain project 1 - Javascript",
-  "main": "index.ts",
-  "scripts": {
-    "build": "tsc"
-  },
+  "description": "",
   "type": "module",
-  "allowImportingTsExtensions": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/index.js",
+    "verify": "node ./src/verify.js",
+    "test": "mocha"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@types/node": "^20.4.9",
-    "typescript": "^5.1.6"
+  "dependencies": {
+    "jest": "^29.6.2",
+    "lodash": "^4.17.21"
   }
 }
