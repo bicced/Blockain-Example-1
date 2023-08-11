@@ -82,6 +82,10 @@ export class Block {
     this.transactions.push(transaction);
   }
 
+  // TODO: This function has two responsibilities: 1) generate new hash, & 2) save block to file.
+  // Recommendation: split this function into two functions.
+  // Impact: Will allow for easier testing of hash generation because it will be decoupled from file system.
+  //
   serialize(prevHash) {
     const transactionText = this.transactions.map(t => Object.values(t).join(' | ')).join('\n');
     let blockText = prevHash + '\n';
