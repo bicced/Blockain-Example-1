@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node ./src/index.js",
     "verify": "node ./src/verify.js",
-    "test": "tape tests/*.js"
+    "test": "tape tests/*.js | tap-spec"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +16,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "tap-spec": "^5.0.0",
     "tape": "^5.6.6"
   }
 }

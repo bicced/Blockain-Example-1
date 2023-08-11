@@ -7,9 +7,9 @@ export class Miner {
   accounts;
   blocks;
   
-  constructor() {
+  constructor(options = { persist: true }) {
     this.accounts = new Accounts();
-    this.blocks = new BlockList();
+    this.blocks = new BlockList(options);
   }
 
   mine(transactions, coinbase) {
