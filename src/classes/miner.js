@@ -15,7 +15,7 @@ export class Miner {
   mine(transactions, coinbase) {
     const block = new Block(coinbase);
     let reward = BLOCK_REWARD;
-    transactions.forEach((transaction) => {
+    transactions.sort((a,b) => b.gas - a.gas).forEach((transaction) => {
       block.add(transaction);
       this.accounts.transfer(transaction.from, transaction.to, transaction.amount, transaction.gas);
       reward += transaction.gas;

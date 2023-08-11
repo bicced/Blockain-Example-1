@@ -83,8 +83,7 @@ export class Block {
   }
 
   serialize(prevHash) {
-    const sortedTransactions = this.transactions.sort((a, b) => b.gas - a.gas);
-    const transactionText = sortedTransactions.map(t => Object.values(t).join(' | ')).join('\n');
+    const transactionText = this.transactions.map(t => Object.values(t).join(' | ')).join('\n');
     let blockText = prevHash + '\n';
 
     if (transactionText.length > 0) {
