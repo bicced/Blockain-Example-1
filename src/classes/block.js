@@ -17,7 +17,9 @@ export class Accounts {
     return this.ledger;
   }
 
-  reward(address, amount) {
+  reward(coinbase, amount) {
+
+    const address = coinbase.address;
     if (!this.ledger[address]) {
       this.ledger[address] = 0;
     }
@@ -55,14 +57,17 @@ export class BlockList {
   blocks;
   prev_hash;
 
-  constructor() {
+  constructor(options = { persist: true }) {
     this.blocks = [];
     this.prev_hash = "0000000000000000000000000000000000000000000000000000000000000000";
+    this.persist = options.persist;
   }
 
   add(block) {
     this.blocks.push(block);
-    this.prev_hash = block.serialize(this.prev_hash);
+    const blockText = block.encode(this.prev_hash);
+
+    this.persist && block.serialize(blockText);
   }
 }
 
@@ -76,13 +81,14 @@ export class Block {
     this.block_number = block_count++;
     this.coinbase_address = coinbase_address;
     this.transactions = [];
+    this.hash = '';
   }
 
   add(transaction) {
     this.transactions.push(transaction);
   }
 
-  serialize(prevHash) {
+  encode(prevHash) {
     const transactionText = this.transactions.map(t => Object.values(t).join(' | ')).join('\n');
     let blockText = prevHash + '\n';
 
@@ -94,18 +100,20 @@ export class Block {
     blockText = blockText + `coinbase | ${this.coinbase_address}`;
 
     // Create hash for current block
-    const hash = createHash('sha256').update(blockText).digest('hex');
+    this.hash = createHash('sha256').update(blockText).digest('hex');
 
     // Add hash to block
-    blockText = blockText + '\n' + hash;
+    blockText = blockText + '\n' + this.hash;
+    return blockText;
 
+  }
+
+  serialize(blockText) {
     console.log(blockText)
 
     fs.writeFile(`${outputDirectory}/block${this.block_number}`, blockText, (err) => {
       if (err) throw err;
       console.log(`Block ${this.block_number} saved!`);
     });
-
-    return hash;
   }
 }
